@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 
+
+'''
+    Transformation class for image transformation operations.
+'''
 class Transformation:
     def __init__(self):
         pass
