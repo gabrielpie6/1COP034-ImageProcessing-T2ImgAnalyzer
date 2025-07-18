@@ -15,10 +15,14 @@ current_img   = None
 current_img_w = 0
 current_img_h = 0
 
+result_loading_img    = None
+result_transform_img  = None
+result_processing_img = None
+
 
 # Load image and create static texture
 def load_image(sender, app_data, user_data):
-    global current_img, current_img_w, current_img_h, pure_img
+    global current_img, current_img_w, current_img_h, pure_img, result_loading_img
     file_path = app_data['file_path_name']
     img = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
     if img is None:
@@ -33,9 +37,16 @@ def load_image(sender, app_data, user_data):
 
     pure_img = img_rgba.copy()
 
+    result_loading_img = img_rgba.copy()
     change_image(img_rgba)
+    dpg.show_item('loading_bwview_checkbox')
+    #
+    dpg.show_item('secImgTransformation')
+    dpg.show_item('secImgProcessing')
 
 def change_image(imgRGBA):
+    if imgRGBA is None:
+        return
     global current_img, current_img_w, current_img_h
     current_img = imgRGBA
     current_img_h, current_img_w = imgRGBA.shape[:2]
@@ -82,12 +93,93 @@ def on_viewport_resize(sender, app_data):
 
     # Resize left/right containers and drawlist
     dpg.configure_item('LeftChild', width=left_w)
-    dpg.configure_item('RightChild', width=right_w, height=height)
-    dpg.configure_item('ImageCanvas', width=right_w, height=height - 17)
+    dpg.configure_item('RightChild', width=right_w, height=height - 23)
+    dpg.configure_item('ImageCanvas', width=right_w, height=height - 17 - 25)
 
     update_image_display()
 
+def change_section(sender, app_data, user_data):
+    print("Section Changed", sender, user_data)
+    # Hide all sections
+    dpg.hide_item('LoadingSection')
+    dpg.hide_item('TransformationSection')
+    dpg.hide_item('ProcessingSection')
+    
 
+    if user_data == "LoadingSection":
+        if result_loading_img is not None:
+            loading_section_update(None, None, None)
+            dpg.show_item('LoadingSection')
+    elif user_data == "TransformationSection":
+        transform_section_update(None, None, None)
+        dpg.show_item('TransformationSection')
+    elif user_data == "ProcessingSection":
+        process_section_update(None, None, None)
+        dpg.show_item('ProcessingSection')
+
+
+    # Show the selected section
+    dpg.show_item(user_data)
+
+
+
+
+def loading_section_update(sender, app_data, user_data):
+    res = computeLoading()
+    change_image(res)
+
+def computeLoading():
+    global result_loading_img
+
+    if dpg.get_value('loading_bwview_checkbox'):
+        result_img = Transformation.BWConversion(result_loading_img)
+    else:
+        result_img = result_loading_img.copy()
+    
+    return result_img
+
+
+
+
+
+
+
+def transform_section_update(sender, app_data, user_data):
+    computeTransformation()
+    change_image(cv2.cvtColor(result_transform_img, cv2.COLOR_GRAY2RGBA))
+
+def computeTransformation():
+    global result_loading_img, result_transform_img
+
+    result_img = result_loading_img.copy()
+
+    result_img = Transformation.RGBAtoGray(result_img)
+
+    if dpg.get_value('transform_flipH_checkbox'):
+        result_img = Transformation.flipHorizontal(result_img)
+    if dpg.get_value('transform_flipV_checkbox'):
+        result_img = Transformation.flipVertical(result_img)
+    
+    if dpg.get_value('transform_histEq_checkbox'):
+        result_img = Transformation.histogramEqualization(result_img)
+
+    result_transform_img = result_img
+    return result_img
+
+
+
+
+def process_section_update(sender, app_data, user_data):
+    computeProcessing()
+    change_image(cv2.cvtColor(result_processing_img, cv2.COLOR_GRAY2RGBA))
+
+def computeProcessing():
+    global result_transform_img, result_processing_img
+
+    result_img = computeTransformation().copy()
+
+    result_processing_img = result_img
+    return result_img
 
 
 
@@ -112,17 +204,28 @@ with dpg.file_dialog(directory_selector=False, show=False, callback=load_image, 
 # Primary Window
 with dpg.window(tag="Primary Window"):
     with dpg.group(horizontal=True):
+        dpg.add_button(label="Image Loading",        tag="secImgLoading",        callback=change_section, user_data="LoadingSection")
+        dpg.add_button(label="Image Transformation", tag="secImgTransformation", callback=change_section, user_data="TransformationSection", show=False)
+        dpg.add_button(label="Image Processing",     tag="secImgProcessing",     callback=change_section, user_data="ProcessingSection",     show=False)
+    
+    
+    with dpg.group(horizontal=True):
         with dpg.child_window(tag="LeftChild", width = leftPanel_width):
-            # dpg.add_text("Hello, world")
-            # dpg.add_button(label="Save")
-            # dpg.add_input_text(label="string", default_value="Quick brown fox")
-            # dpg.add_slider_float(label="float", default_value=0.273, max_value=1)
-            dpg.add_button(label='Open Image', callback=lambda s, a, u: dpg.show_item('file_dialog'))
-            dpg.add_button(label='B&W View',   callback=lambda s, a, u: change_image(Transformation.BWConversion(pure_img)))
+            with dpg.group(tag="LoadingSection"):
+                dpg.add_button(label='Open Image',                                callback = lambda s, a, u: dpg.show_item('file_dialog'))
+                dpg.add_checkbox(label='B&W View', tag='loading_bwview_checkbox', callback = loading_section_update, show = False)
+            
+            with dpg.group(tag="TransformationSection", show=False):
+                dpg.add_checkbox(label='Flip Horizontal',        tag='transform_flipH_checkbox',  callback=transform_section_update)
+                dpg.add_checkbox(label='Flip Vertical',          tag='transform_flipV_checkbox',  callback=transform_section_update)
+                dpg.add_checkbox(label='Histogram Equalization', tag='transform_histEq_checkbox', callback=transform_section_update)
+
+            with dpg.group(tag="ProcessingSection", show=False):
+                dpg.add_button(label='Segment Image', tag='processing_segment_button')
         
         with dpg.child_window(tag="RightChild"):
             dpg.add_drawlist(tag='ImageCanvas', width=100, height=100)
-
+    
 
 
 
