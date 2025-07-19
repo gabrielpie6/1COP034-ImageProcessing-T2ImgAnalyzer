@@ -99,7 +99,7 @@ def on_viewport_resize(sender, app_data):
     update_image_display()
 
 def change_section(sender, app_data, user_data):
-    print("Section Changed", sender, user_data)
+    # print("Section Changed", sender, user_data)
     # Hide all sections
     dpg.hide_item('LoadingSection')
     dpg.hide_item('TransformationSection')
@@ -145,8 +145,23 @@ def computeLoading():
 
 
 def transform_section_update(sender, app_data, user_data):
+    global result_transform_img
     computeTransformation()
-    change_image(cv2.cvtColor(result_transform_img, cv2.COLOR_GRAY2RGBA))
+
+    if dpg.get_value('transform_freqview_checkbox'):
+        view = Transformation.frequencyDomain(result_transform_img)
+    elif dpg.get_value('transform_bandpass_maskview'):
+        split   = dpg.get_value('transform_split_slider')
+        inner   = dpg.get_value('transform_inner_slider')
+        outer   = dpg.get_value('transform_outer_slider')
+        fadeIn  = dpg.get_value('transform_fadein_slider')
+        fadeOut = dpg.get_value('transform_fadeout_slider')
+        img     = Transformation.bandPassMask(result_transform_img.shape[1], result_transform_img.shape[0], split, inner, outer, fadeIn, fadeOut)
+        view    = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    else:
+        view = result_transform_img
+
+    change_image(cv2.cvtColor(view, cv2.COLOR_GRAY2RGBA))
 
 def computeTransformation():
     global result_loading_img, result_transform_img
@@ -159,9 +174,27 @@ def computeTransformation():
         result_img = Transformation.flipHorizontal(result_img)
     if dpg.get_value('transform_flipV_checkbox'):
         result_img = Transformation.flipVertical(result_img)
-    
     if dpg.get_value('transform_histEq_checkbox'):
         result_img = Transformation.histogramEqualization(result_img)
+
+
+    if dpg.get_value('transform_freq_checkbox'):
+        dpg.enable_item('transform_freq_filtering')
+
+        if dpg.get_value('transform_bandpass_checkbox'):
+            dpg.enable_item('transform_freq_bandpass')
+
+            split   = dpg.get_value('transform_split_slider')
+            inner   = dpg.get_value('transform_inner_slider')
+            outer   = dpg.get_value('transform_outer_slider')
+            fadeIn  = dpg.get_value('transform_fadein_slider')
+            fadeOut = dpg.get_value('transform_fadeout_slider')
+            result_img = Transformation.bandPass(result_img, split, inner, outer, fadeIn, fadeOut)
+        else:
+            dpg.disable_item('transform_freq_bandpass')
+    else:
+        dpg.disable_item('transform_freq_filtering')
+    
 
     result_transform_img = result_img
     return result_img
@@ -180,6 +213,18 @@ def computeProcessing():
 
     result_processing_img = result_img
     return result_img
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -211,18 +256,41 @@ with dpg.window(tag="Primary Window"):
     
     with dpg.group(horizontal=True):
         with dpg.child_window(tag="LeftChild", width = leftPanel_width):
+            # Loading Section
             with dpg.group(tag="LoadingSection"):
                 dpg.add_button(label='Open Image',                                callback = lambda s, a, u: dpg.show_item('file_dialog'))
                 dpg.add_checkbox(label='B&W View', tag='loading_bwview_checkbox', callback = loading_section_update, show = False)
-            
+            #####
+
+            # Transformation Section
             with dpg.group(tag="TransformationSection", show=False):
                 dpg.add_checkbox(label='Flip Horizontal',        tag='transform_flipH_checkbox',  callback=transform_section_update)
                 dpg.add_checkbox(label='Flip Vertical',          tag='transform_flipV_checkbox',  callback=transform_section_update)
                 dpg.add_checkbox(label='Histogram Equalization', tag='transform_histEq_checkbox', callback=transform_section_update)
+                
+                # Frequency Filtering
+                dpg.add_checkbox(label='Frequency Filtering', tag='transform_freq_checkbox', callback=transform_section_update, default_value=False)
+                with dpg.group(tag='transform_freq_filtering', enabled=False):
+                    dpg.add_checkbox(label='Frequency Domain View', tag='transform_freqview_checkbox', callback=transform_section_update, default_value=False)
+                    dpg.add_checkbox(label='Band-pass Filter',      tag='transform_bandpass_checkbox', callback=transform_section_update, default_value=False)
+                    with dpg.group(tag='transform_freq_bandpass', enabled=False):
+                        dpg.add_checkbox(label='Band-pass Mask View', tag='transform_bandpass_maskview', callback=transform_section_update, default_value=False)
+                        dpg.add_slider_float(label='Split',    tag='transform_split_slider',   default_value=0.5, min_value=0.0,  max_value=1.0, callback=transform_section_update)
+                        dpg.add_slider_float(label='Inner',    tag='transform_inner_slider',   default_value=0.5, min_value=0.0,  max_value=1.0, callback=transform_section_update)
+                        dpg.add_slider_float(label='Outer',    tag='transform_outer_slider',   default_value=0.5, min_value=0.0,  max_value=1.0, callback=transform_section_update)
+                        dpg.add_slider_float(label='Fade In',  tag='transform_fadein_slider',  default_value=5,   min_value=0.01, max_value=10,  callback=transform_section_update)
+                        dpg.add_slider_float(label='Fade Out', tag='transform_fadeout_slider', default_value=5,   min_value=0.01, max_value=10,  callback=transform_section_update)
+            #####
+                
+                        
+            
 
+
+            # Processing Section
             with dpg.group(tag="ProcessingSection", show=False):
                 dpg.add_button(label='Segment Image', tag='processing_segment_button')
-        
+            #####
+
         with dpg.child_window(tag="RightChild"):
             dpg.add_drawlist(tag='ImageCanvas', width=100, height=100)
     

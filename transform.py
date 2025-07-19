@@ -39,3 +39,61 @@ class Transformation:
     @staticmethod
     def medianBlur(img, ksize):
         return cv2.medianBlur(img, ksize)
+    
+
+    @staticmethod
+    def frequencyDomain(img):
+        imgDFT = np.fft.fftshift(np.fft.fft2(img))
+        imgFreqNorm = np.log(1 + np.abs(imgDFT))
+        imgFreqNorm = cv2.normalize(imgFreqNorm, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        return imgFreqNorm
+
+
+    @staticmethod
+    def bandPassMask(width, height, split, inner, outer, fadeIn, fadeOut):
+        d = np.sqrt((width/2)**2 + (height/2)**2)
+        m = split * d
+
+        a = (1 - outer) * m + outer * d
+        b = inner * m
+
+        # f = lambda t, k: 1.0 / (1 + np.exp(k * t))
+        # g = lambda t: f(- t + b, fadeIn)
+        # h = lambda t: f(  t - a, fadeOut)
+
+        g = lambda t: sigmoid(  t - b, fadeIn)
+        h = lambda t: sigmoid(- t + a, fadeOut)
+
+        q = lambda t: g(t)*h(t)
+        c = lambda x, y: q(np.sqrt(x**2 + y**2))
+        normalized = lambda x, y: c(x - width / 2, y - height / 2)
+
+        ys, xs = np.indices((height, width))
+        mask = normalized(xs, ys)
+
+        return mask
+
+    @staticmethod
+    def bandPass(img, split, inner, outer, fadeIn, fadeOut):
+        width,  height  = img.shape[1], img.shape[0]
+
+        mask = Transformation.bandPassMask(width, height, split, inner, outer, fadeIn, fadeOut)
+
+        imgDFT = np.fft.fftshift(np.fft.fft2(img))
+        res = np.abs(np.fft.ifft2(imgDFT * mask)).astype(np.uint8)
+
+        return res
+
+
+
+def sigmoid(t, k):
+    z = k*t
+    out = np.empty_like(z, dtype=np.float64)
+    pos = z >= 0
+    neg = ~pos
+    # For z >= 0: sig = 1/(1 + exp(-z))
+    out[pos] = 1.0/(1.0 + np.exp(-z[pos]))
+    # For z <  0: sig = exp(z)/(1 + exp(z))
+    exp_z = np.exp(z[neg])
+    out[neg] = exp_z/(1.0 + exp_z)
+    return out
