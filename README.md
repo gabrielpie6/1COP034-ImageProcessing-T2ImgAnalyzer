@@ -4,31 +4,40 @@ A ideia é construir um sistema que permita inserir imagens, então realizar alg
 
 # Setup
 
-Criação de um ambiente virtual em Python para desenvolvimento da aplicação. Uma forma de minimizar conflitos entre dependências e pacotes externos
-
-### 1. Linux / macOS
-
+Criação de um ambiente virtual em Python para desenvolvimento da aplicação. Uma forma de minimizar conflitos entre dependências e pacotes externos:
 ```
 python3 -m venv env
+```
+
+### 1. Ativação do Environment
+Para a utilização do enviroment criado, estando no diretório que contém a pasta ```env```, é necessário realizar a ativação:
+
+#### 1.A. Linux / macOS
+
+```
 source env/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
 ```
 
-### 2.1. Windows via CMD
+#### 1.B. Windows via CMD
 
 ```
-python -m venv env
 env\Scripts\activate
-pip install --upgrade pip
-pip install -r requirements.txt
 ```
 
-### 2.2. Windows via Powershell
+#### 1.C. Windows via Powershell
 
 ```
-python -m venv env
 .\env\Scripts\Activate.ps1
+```
+
+
+### 2. Instalação
+```
 pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+### 3. Execução
+```
+python app.py
 ```
