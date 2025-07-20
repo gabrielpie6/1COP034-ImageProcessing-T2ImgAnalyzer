@@ -177,7 +177,37 @@ def computeTransformation():
     if dpg.get_value('transform_histEq_checkbox'):
         result_img = Transformation.histogramEqualization(result_img)
 
+    # Mean Blur
+    if dpg.get_value('transform_mean_blur_checkbox'):
+        dpg.enable_item('transform_mean_blur')
+        ksize = int(dpg.get_value('transform_mean_blur_kernel_slider'))
+        ksize = ksize if ksize % 2 == 1 else ksize + 1  # Ensure odd size
+        result_img = Transformation.meanBlur(result_img, ksize, ksize)
+    else:
+        dpg.disable_item('transform_mean_blur')
+    
+    # Gaussian Blur
+    if dpg.get_value('transform_gaussian_blur_checkbox'):
+        dpg.enable_item('transform_gaussian_blur')
+        ksize = int(dpg.get_value('transform_gaussian_blur_kernel_slider'))
+        ksize = ksize if ksize % 2 == 1 else ksize + 1  # Ensure odd size
+        sigmaX = dpg.get_value('transform_gaussian_blur_sigmaX_slider')
+        sigmaY = dpg.get_value('transform_gaussian_blur_sigmaY_slider')
+        result_img = Transformation.gaussianBlur(result_img, ksize, ksize, sigmaX=sigmaX, sigmaY=sigmaY)
+    else:
+        dpg.disable_item('transform_gaussian_blur')
 
+    # Median Blur
+    if dpg.get_value('transform_median_blur_checkbox'):
+        dpg.enable_item('transform_median_blur')
+        ksize = int(dpg.get_value('transform_median_blur_kernel_slider'))
+        ksize = ksize if ksize % 2 == 1 else ksize + 1  # Ensure odd size
+        result_img = Transformation.medianBlur(result_img, ksize)
+    else:
+        dpg.disable_item('transform_median_blur')
+
+
+    # Frequency Domain
     if dpg.get_value('transform_freq_checkbox'):
         dpg.enable_item('transform_freq_filtering')
 
@@ -267,7 +297,24 @@ with dpg.window(tag="Primary Window"):
                 dpg.add_checkbox(label='Flip Horizontal',        tag='transform_flipH_checkbox',  callback=transform_section_update)
                 dpg.add_checkbox(label='Flip Vertical',          tag='transform_flipV_checkbox',  callback=transform_section_update)
                 dpg.add_checkbox(label='Histogram Equalization', tag='transform_histEq_checkbox', callback=transform_section_update)
-                
+
+
+                # Blurring
+                dpg.add_checkbox(label='Mean Blur', tag='transform_mean_blur_checkbox', callback=transform_section_update, default_value=False)
+                with dpg.group(tag='transform_mean_blur', enabled=False):
+                    dpg.add_slider_int(label='Kernel Size', tag='transform_mean_blur_kernel_slider', default_value=5, min_value=1, max_value=99, callback=transform_section_update)
+                #
+                dpg.add_checkbox(label='Gaussian Blur', tag='transform_gaussian_blur_checkbox', callback=transform_section_update, default_value=False)
+                with dpg.group(tag='transform_gaussian_blur', enabled=False):
+                    dpg.add_slider_int  (label='Kernel Size', tag='transform_gaussian_blur_kernel_slider', default_value=5, min_value=1, max_value=99, callback=transform_section_update)
+                    dpg.add_slider_float(label='Sigma X',     tag='transform_gaussian_blur_sigmaX_slider', default_value=0, min_value=0, max_value=10, callback=transform_section_update)
+                    dpg.add_slider_float(label='Sigma Y',     tag='transform_gaussian_blur_sigmaY_slider', default_value=0, min_value=0, max_value=10, callback=transform_section_update)
+                #
+                dpg.add_checkbox(label='Median Blur', tag='transform_median_blur_checkbox', callback=transform_section_update, default_value=False)
+                with dpg.group(tag='transform_median_blur', enabled=False):
+                    dpg.add_slider_int(label='Kernel Size', tag='transform_median_blur_kernel_slider', default_value=5, min_value=1, max_value=99, callback=transform_section_update)
+
+
                 # Frequency Filtering
                 dpg.add_checkbox(label='Frequency Filtering', tag='transform_freq_checkbox', callback=transform_section_update, default_value=False)
                 with dpg.group(tag='transform_freq_filtering', enabled=False):
