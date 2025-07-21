@@ -54,7 +54,7 @@ def change_image(main_img_rgba, segmented_img_rgba=None):
 
     # Prepara dados da imagem principal
     h1, w1, _ = main_img_rgba.shape
-    data1 = np.asfarray(main_img_rgba.ravel(), dtype='f') / 255.0
+    data1 = np.asarray(main_img_rgba.ravel(), dtype='f') / 255.0
     
     # Cria ou atualiza a textura principal
     if not dpg.does_item_exist('main_tex'):
@@ -66,7 +66,7 @@ def change_image(main_img_rgba, segmented_img_rgba=None):
     if segmented_img_rgba is not None:
         display_mode = "dual"
         h2, w2, _ = segmented_img_rgba.shape
-        data2 = np.asfarray(segmented_img_rgba.ravel(), dtype='f') / 255.0
+        data2 = np.asarray(segmented_img_rgba.ravel(), dtype='f') / 255.0
         if not dpg.does_item_exist('segmented_tex'):
             dpg.add_dynamic_texture(width=w2, height=h2, default_value=data2, tag='segmented_tex', parent='texreg')
         else:
