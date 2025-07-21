@@ -18,7 +18,8 @@ current_img_h = 0
 result_loading_img    = None
 result_transform_img  = None
 result_processing_img = None
-
+result_segmented_img = None
+display_mode = "single"
 
 # Load image and create static texture
 def load_image(sender, app_data, user_data):
@@ -45,43 +46,78 @@ def load_image(sender, app_data, user_data):
     dpg.show_item('secImgProcessing')
     dpg.show_item('secImgDetectionOtsu')
 
-def change_image(imgRGBA):
-    if imgRGBA is None:
-        return
-    global current_img, current_img_w, current_img_h
-    current_img = imgRGBA
-    current_img_h, current_img_w = imgRGBA.shape[:2]
+def change_image(main_img_rgba, segmented_img_rgba=None):
+    """ Prepara e atualiza as texturas. Aceita uma segunda imagem opcional. """
+    global display_mode
+    if main_img_rgba is None: return
 
-    data = imgRGBA.flatten() / 255.0
-    if not dpg.does_item_exist('image_tex'):
-        dpg.add_dynamic_texture(
-            current_img_w, current_img_h, data,
-            tag='image_tex', parent='texreg'
-        )
+    # Prepara dados da imagem principal
+    h1, w1, _ = main_img_rgba.shape
+    data1 = np.asfarray(main_img_rgba.ravel(), dtype='f') / 255.0
+    
+    # Cria ou atualiza a textura principal
+    if not dpg.does_item_exist('main_tex'):
+        dpg.add_dynamic_texture(width=w1, height=h1, default_value=data1, tag='main_tex', parent='texreg')
     else:
-        dpg.set_value('image_tex', data)
+        dpg.configure_item('main_tex', width=w1, height=h1, default_value=data1)
+
+    # Se uma segunda imagem foi fornecida, prepara sua textura e muda o modo
+    if segmented_img_rgba is not None:
+        display_mode = "dual"
+        h2, w2, _ = segmented_img_rgba.shape
+        data2 = np.asfarray(segmented_img_rgba.ravel(), dtype='f') / 255.0
+        if not dpg.does_item_exist('segmented_tex'):
+            dpg.add_dynamic_texture(width=w2, height=h2, default_value=data2, tag='segmented_tex', parent='texreg')
+        else:
+            dpg.configure_item('segmented_tex', width=w2, height=h2, default_value=data2)
+    else:
+        # Se nenhuma segunda imagem foi fornecida, garante o modo de imagem unica
+        display_mode = "single"
 
     update_image_display()
 
 
 # Redraw image to fit current drawlist size, centered with white background
 def update_image_display():
-    global current_img_w, current_img_h
-    if not dpg.does_item_exist('image_tex'):
-        return
-
-    can_w = dpg.get_item_width('RightChild')
-    can_h = dpg.get_item_height('RightChild')
-    # print((can_w, can_h))
-    scale = min(can_w / current_img_w, can_h / current_img_h)
-    new_w = int(current_img_w * scale)
-    new_h = int(current_img_h * scale)
-
+    """ Desenha uma ou duas imagens, dependendo do modo de exibicao. """
+    global display_mode
+    
+    canvas_w = dpg.get_item_width('RightChild')
+    canvas_h = dpg.get_item_height('RightChild')
+    if not canvas_w or not canvas_h: return
+    
     dpg.delete_item('ImageCanvas', children_only=True)
-    # dpg.draw_rectangle([0, 0], [can_w, can_h], color=[0, 0, 0, 0], fill=[255, 255, 255, 255], parent='ImageCanvas')
-    x = (can_w - new_w) // 2
-    y = (can_h - new_h) // 2
-    dpg.draw_image('image_tex', pmin=[x, y], pmax=[x + new_w, y + new_h], parent='ImageCanvas')
+
+    if display_mode == "single" and dpg.does_item_exist('main_tex'):
+        # --- Logica para desenhar UMA imagem centralizada ---
+        tex_w = dpg.get_item_width('main_tex')
+        tex_h = dpg.get_item_height('main_tex')
+        scale = min(canvas_w / tex_w, canvas_h / tex_h)
+        new_w, new_h = int(tex_w * scale), int(tex_h * scale)
+        x, y = (canvas_w - new_w) // 2, (canvas_h - new_h) // 2
+        dpg.draw_image('main_tex', pmin=[x, y], pmax=[x + new_w, y + new_h], parent='ImageCanvas')
+
+    elif display_mode == "dual" and dpg.does_item_exist('main_tex') and dpg.does_item_exist('segmented_tex'):
+        # --- Logica para desenhar DUAS imagens lado a lado ---
+        available_w = canvas_w / 2 - 10
+        
+        # Imagem 1 (Classificada)
+        tex_w1, tex_h1 = dpg.get_item_width('main_tex'), dpg.get_item_height('main_tex')
+        scale1 = min(available_w / tex_w1, canvas_h / tex_h1)
+        new_w1, new_h1 = int(tex_w1 * scale1), int(tex_h1 * scale1)
+        offset_x1 = (available_w - new_w1) / 2 + 5
+        offset_y1 = (canvas_h - new_h1) / 2
+        dpg.draw_image('main_tex', pmin=[offset_x1, offset_y1], pmax=[offset_x1 + new_w1, offset_y1 + new_h1], parent='ImageCanvas')
+        dpg.draw_text(pos=[offset_x1, offset_y1 - 20], text="Classified", size=15, color=[255,255,255,255], parent='ImageCanvas')
+        
+        # Imagem 2 (Segmentada)
+        tex_w2, tex_h2 = dpg.get_item_width('segmented_tex'), dpg.get_item_height('segmented_tex')
+        scale2 = min(available_w / tex_w2, canvas_h / tex_h2)
+        new_w2, new_h2 = int(tex_w2 * scale2), int(tex_h2 * scale2)
+        offset_x2 = canvas_w / 2 + (available_w - new_w2) / 2 + 5
+        offset_y2 = (canvas_h - new_h2) / 2
+        dpg.draw_image('segmented_tex', pmin=[offset_x2, offset_y2], pmax=[offset_x2 + new_w2, offset_y2 + new_h2], parent='ImageCanvas')
+        dpg.draw_text(pos=[offset_x2, offset_y2 - 20], text="Segmented", size=15, color=[255,255,255,255], parent='ImageCanvas')
 
 # Callback: when viewport resizes, adjust child sizes and redraw
 def on_viewport_resize(sender, app_data):
@@ -335,13 +371,17 @@ def run_vehicle_classification_otsu(sender, app_data, user_data):
     bgr_image = cv2.cvtColor(pure_img, cv2.COLOR_RGBA2BGR)
 
     # Etapa 2: Chamar a funcao de processamento passando o dicionario de 'params'
-    processed_bgr, logs = Processing.segmentAndClassifyVehiclesOtsu(
+    processed_bgr, segmented_gray, logs = Processing.segmentAndClassifyVehiclesOtsu(
         bgr_image,
         params
     )
 
+    # Armazena as duas imagens de resultado
     result_processing_img = cv2.cvtColor(processed_bgr, cv2.COLOR_BGR2RGBA)
-    change_image(result_processing_img)
+    # Converte a imagem segmentada (cinza) para RGBA para poder ser exibida
+    result_segmented_img = cv2.cvtColor(segmented_gray, cv2.COLOR_GRAY2RGBA)
+    
+    change_image(result_processing_img, result_segmented_img)
     dpg.set_value("classification_log_text", "\n".join(logs))
 
 

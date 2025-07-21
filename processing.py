@@ -135,4 +135,4 @@ class Processing:
         ]
 
         # (imagem, lista de strings)
-        return display_img, summary + logs
+        return display_img, segmented_image, summary + logs
