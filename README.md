@@ -41,3 +41,20 @@ pip install -r requirements.txt
 ```
 python app.py
 ```
+
+
+
+
+
+
+# Dificuldades e Possı́veis	Melhorias
+
+### 1. Desafios
+A metodologia baseada em segmentação por limiar (Otsu) e detecção de bordas (Canny) demonstrou ser funcional, porém inerentemente limitada. Essas técnicas são altamente sensíveis às condições da imagem, como variações de iluminação, contraste, sombras e complexidade do fundo.
+
+O principal desafio encontrado foi a dependência de ajustes de parâmetros. O ajuste de valores como limiares de área, proporção, parâmetros dos algoritmos e parâmetros morfológicos é um processo iterativo e pouco robusto. Uma parametrização que segmenta veículos com sucesso em uma imagem pode falhar completamente em outra, seja por não detectar os alvos ou por classificar incorretamente ruídos e outros elementos do cenário. O que evidencia a baixa capacidade de generalização do método utilizado.
+
+### 2. Possíveis Melhorias:
+**Dentro do escopo do trabalho**: A detecção poderia ser aprimorada pela combinação de mais técnicas de segmentação, porém não achamos um modo de fazer isso. Para a classificação, em vez de utilizar apenas a área para classificar, poderíamos treinar um modelo de Machine Learning (como SVM) utilizando características extraídas dos contornos (área, proporção, solidez, etc.), tornando a distinção entre os tipos de veículos mais precisa ou utilizar algoritmos de Deep Learning (uma simples CNN), porém essas abordagens exigiriam a obtenção de dados.
+
+**Fora do escopo do trabalho**: A abordagem mais moderna e eficaz seria a utilização de modelos de Deep Learning State-of-the-Art (SOTA), como o YOLOv8. Esses modelos realizam a detecção e classificação de objetos de forma unificada e são treinados para reconhecer veículos em diversas condições de iluminação, ângulo e oclusão, superando as limitações dos métodos clássicos.
