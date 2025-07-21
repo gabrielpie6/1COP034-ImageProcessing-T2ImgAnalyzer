@@ -9,5 +9,7 @@ import numpy as np
 class Processing:
     def __init__(self):
         pass
-
-    # To Implement ...
+    
+    @staticmethod
+    def cannyEdgeDetection(img, lowThreshold=100, highThreshold=200, apertureSize=3, L2gradient=False):
+        return cv2.Canny(img, lowThreshold, highThreshold, apertureSize=apertureSize, L2gradient=L2gradient)

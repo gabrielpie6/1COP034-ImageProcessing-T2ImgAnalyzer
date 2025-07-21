@@ -207,6 +207,37 @@ def computeTransformation():
         dpg.disable_item('transform_median_blur')
 
 
+    if dpg.get_value('transform_spatial_checkbox'):
+        dpg.enable_item('transform_spatial_filtering')
+
+        # Laplacian Filter
+        if dpg.get_value('transform_laplacian_checkbox'):
+            dpg.enable_item('transform_laplacian')
+            ksize = int(dpg.get_value('transform_laplacian_kernel_slider'))
+            ksize = ksize if ksize % 2 == 1 else ksize + 1  # Ensure odd size
+            result_img = Transformation.laplacianFilter(result_img, ksize)
+        else:
+            dpg.disable_item('transform_laplacian')
+        
+        # Sobel Filters
+        if dpg.get_value('transform_sobel_x_checkbox'):
+            dpg.enable_item('transform_sobel_x')
+            ksize = int(dpg.get_value('transform_sobel_x_kernel_slider'))
+            ksize = ksize if ksize % 2 == 1 else ksize + 1  # Ensure odd size
+            result_img = Transformation.sobelFilter(result_img, dx=1, dy=0, ksize=ksize)
+        else:
+            dpg.disable_item('transform_sobel_x')
+        if dpg.get_value('transform_sobel_y_checkbox'):
+            dpg.enable_item('transform_sobel_y')
+            ksize = int(dpg.get_value('transform_sobel_y_kernel_slider'))
+            ksize = ksize if ksize % 2 == 1 else ksize + 1
+            result_img = Transformation.sobelFilter(result_img, dx=0, dy=1, ksize=ksize)
+        else:
+            dpg.disable_item('transform_sobel_y')
+    else:
+        dpg.disable_item('transform_spatial_filtering')
+
+
     # Frequency Domain
     if dpg.get_value('transform_freq_checkbox'):
         dpg.enable_item('transform_freq_filtering')
@@ -226,6 +257,34 @@ def computeTransformation():
         dpg.disable_item('transform_freq_filtering')
     
 
+
+    # Binarization
+    if dpg.get_value('transform_binarization_checkbox'):
+        dpg.enable_item('transform_binarization')
+
+        # Hide all options initially
+        dpg.hide_item('transform_binarization_threshold_slider')
+        dpg.hide_item('transform_binarization_adaptive')
+
+        # Apply the selected binarization method
+        method = dpg.get_value('transform_binarization_method')
+        if method == "Otsu":
+            result_img = Transformation.binarizationOtsu(result_img)
+        elif method == "Threshold":
+            dpg.show_item('transform_binarization_threshold_slider')
+            threshold = dpg.get_value('transform_binarization_threshold_slider')
+            result_img = Transformation.binarizationThreshold(result_img, threshold)
+        elif method == "Adaptive":
+            dpg.show_item('transform_binarization_adaptive')
+            block_size = int(dpg.get_value('transform_binarization_adaptive_block_slider'))
+            block_size = block_size if block_size % 2 == 1 else block_size + 1  # Ensure odd size
+            c_value    = dpg.get_value('transform_binarization_adaptive_c_slider')
+            result_img = Transformation.binarizationAdaptive(result_img, block_size, c_value)
+
+    else:
+        dpg.disable_item('transform_binarization')
+    
+
     result_transform_img = result_img
     return result_img
 
@@ -233,7 +292,21 @@ def computeTransformation():
 
 
 def process_section_update(sender, app_data, user_data):
-    computeProcessing()
+    global result_transform_img, result_processing_img
+
+    result_img = computeProcessing()
+
+    if dpg.get_value('processing_canny_checkbox'):
+        dpg.enable_item('processing_canny')
+        low        = dpg.get_value('processing_canny_low_slider')
+        high       = dpg.get_value('processing_canny_high_slider')
+        aperture   = dpg.get_value('processing_canny_aperture_slider')
+        aperture   = aperture if aperture % 2 == 1 else aperture + 1  # Ensure odd size
+        l2gradient = dpg.get_value('processing_canny_l2_checkbox')
+        result_processing_img = Processing.cannyEdgeDetection(result_img, lowThreshold=low, highThreshold=high, apertureSize=aperture, L2gradient=l2gradient)
+    else:
+        dpg.disable_item('processing_canny')
+
     change_image(cv2.cvtColor(result_processing_img, cv2.COLOR_GRAY2RGBA))
 
 def computeProcessing():
@@ -314,6 +387,22 @@ with dpg.window(tag="Primary Window"):
                 with dpg.group(tag='transform_median_blur', enabled=False):
                     dpg.add_slider_int(label='Kernel Size', tag='transform_median_blur_kernel_slider', default_value=5, min_value=1, max_value=99, callback=transform_section_update)
 
+                # Spatial Filtering
+                dpg.add_checkbox(label='Spatial Filtering', tag='transform_spatial_checkbox', callback=transform_section_update, default_value=False)
+                with dpg.group(tag='transform_spatial_filtering', enabled=False):
+                    # Laplacian Filter
+                    dpg.add_checkbox(label='Laplacian Filter', tag='transform_laplacian_checkbox', callback=transform_section_update, default_value=False)
+                    with dpg.group(tag='transform_laplacian', enabled=False):
+                        dpg.add_slider_int(label='Kernel Size', tag='transform_laplacian_kernel_slider', default_value=3, min_value=1, max_value=31, callback=transform_section_update)
+                    #
+                    # Sobel Filters
+                    dpg.add_checkbox(label='Sobel X Filter', tag='transform_sobel_x_checkbox', callback=transform_section_update, default_value=False)
+                    with dpg.group(tag='transform_sobel_x', enabled=False):
+                        dpg.add_slider_int(label='Kernel Size', tag='transform_sobel_x_kernel_slider', default_value=3, min_value=1, max_value=31, callback=transform_section_update)
+                    dpg.add_checkbox(label='Sobel Y Filter', tag='transform_sobel_y_checkbox', callback=transform_section_update, default_value=False)
+                    with dpg.group(tag='transform_sobel_y', enabled=False):
+                        dpg.add_slider_int(label='Kernel Size', tag='transform_sobel_y_kernel_slider', default_value=3, min_value=1, max_value=31, callback=transform_section_update)
+
 
                 # Frequency Filtering
                 dpg.add_checkbox(label='Frequency Filtering', tag='transform_freq_checkbox', callback=transform_section_update, default_value=False)
@@ -327,15 +416,47 @@ with dpg.window(tag="Primary Window"):
                         dpg.add_slider_float(label='Outer',    tag='transform_outer_slider',   default_value=0.5, min_value=0.0,  max_value=1.0, callback=transform_section_update)
                         dpg.add_slider_float(label='Fade In',  tag='transform_fadein_slider',  default_value=5,   min_value=0.01, max_value=10,  callback=transform_section_update)
                         dpg.add_slider_float(label='Fade Out', tag='transform_fadeout_slider', default_value=5,   min_value=0.01, max_value=10,  callback=transform_section_update)
+                
+
+                # Binarization
+                dpg.add_checkbox(label='Binarization', tag='transform_binarization_checkbox', callback=transform_section_update, default_value=False)
+                with dpg.group(tag='transform_binarization', enabled=False):
+                    dpg.add_radio_button(
+                        tag='transform_binarization_method',
+                        items=["Otsu", "Threshold", "Adaptive"],
+                        default_value="Otsu",
+                        horizontal=False,
+                        callback=transform_section_update
+                    )
+                    dpg.add_slider_int(label='Threshold Value', tag='transform_binarization_threshold_slider', default_value=127, min_value=0, max_value=255, callback=transform_section_update, show=False)
+                    #
+                    with dpg.group(tag='transform_binarization_adaptive', show=False):
+                        dpg.add_slider_int(label='Adaptive Block Size', tag='transform_binarization_adaptive_block_slider', default_value=11, min_value=3, max_value=99, callback=transform_section_update)
+                        dpg.add_slider_float(label='Adaptive C Value', tag='transform_binarization_adaptive_c_slider', default_value=2, min_value=0, max_value=10, callback=transform_section_update)
             #####
                 
                         
             
 
-
+            def on_canny_slider_update(sender, app_data, user_data):
+                if sender == 'processing_canny_low_slider':
+                    low = dpg.get_value('processing_canny_low_slider')
+                    dpg.set_value('processing_canny_high_slider', max(dpg.get_value('processing_canny_high_slider'), low + 1))
+                elif sender == 'processing_canny_high_slider':
+                    high = dpg.get_value('processing_canny_high_slider')
+                    dpg.set_value('processing_canny_low_slider', min(dpg.get_value('processing_canny_low_slider'), high - 1))
+                process_section_update(sender, app_data, user_data)
+                
             # Processing Section
             with dpg.group(tag="ProcessingSection", show=False):
-                dpg.add_button(label='Segment Image', tag='processing_segment_button')
+                dpg.add_checkbox(label='Canny Edge Detection', tag='processing_canny_checkbox', default_value=True, enabled=False)
+                with dpg.group(tag='processing_canny', enabled=False):
+                    dpg.add_slider_int(label='Low Threshold',  tag='processing_canny_low_slider',      default_value=100,   min_value=0, max_value=254, callback=on_canny_slider_update)
+                    dpg.add_slider_int(label='High Threshold', tag='processing_canny_high_slider',     default_value=200,   min_value=1, max_value=255, callback=on_canny_slider_update)
+                    dpg.add_slider_int(label='Aperture Size',  tag='processing_canny_aperture_slider', default_value=3,     min_value=3, max_value=7,   callback=process_section_update)
+                    dpg.add_checkbox  (label='L2 Gradient',    tag='processing_canny_l2_checkbox',     default_value=False, callback=process_section_update)
+
+                dpg.add_button(label='Segment Image', tag='processing_segment_button', enabled=False)
             #####
 
         with dpg.child_window(tag="RightChild"):

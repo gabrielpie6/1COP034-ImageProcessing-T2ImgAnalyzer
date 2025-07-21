@@ -42,6 +42,14 @@ class Transformation:
     
 
     @staticmethod
+    def laplacianFilter(img, ksize):
+        return cv2.convertScaleAbs(cv2.Laplacian(img, cv2.CV_64F, ksize=ksize))
+
+    @staticmethod
+    def sobelFilter(img, dx, dy, ksize):
+        return cv2.convertScaleAbs(cv2.Sobel(img, cv2.CV_64F, dx=dx, dy=dy, ksize=ksize))
+
+    @staticmethod
     def frequencyDomain(img):
         imgDFT = np.fft.fftshift(np.fft.fft2(img))
         imgFreqNorm = np.log(1 + np.abs(imgDFT))
@@ -83,6 +91,26 @@ class Transformation:
         res = np.abs(np.fft.ifft2(imgDFT * mask)).astype(np.uint8)
 
         return res
+    
+
+
+
+    # Binarization
+    @staticmethod
+    def binarizationOtsu(img):
+        _, binary = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        return binary
+
+    @staticmethod
+    def binarizationThreshold(img, threshold):
+        _, binary = cv2.threshold(img, threshold, 255, cv2.THRESH_BINARY)
+        return binary
+
+    @staticmethod
+    def binarizationAdaptive(img, block_size, c):
+        return cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, c)
+
+
 
 
 
