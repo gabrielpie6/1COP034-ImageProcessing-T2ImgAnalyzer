@@ -7,7 +7,7 @@ from processing import Processing
 
 vp_width  = 600
 vp_height = 400
-leftPanel_width = int(vp_width * 0.3)
+leftPanel_width = int(vp_width * 0.4)
 
 # Globals for image data and dimensions
 pure_img      = None
@@ -43,6 +43,7 @@ def load_image(sender, app_data, user_data):
     #
     dpg.show_item('secImgTransformation')
     dpg.show_item('secImgProcessing')
+    dpg.show_item('secImgDetectionOtsu')
 
 def change_image(imgRGBA):
     if imgRGBA is None:
@@ -104,6 +105,7 @@ def change_section(sender, app_data, user_data):
     dpg.hide_item('LoadingSection')
     dpg.hide_item('TransformationSection')
     dpg.hide_item('ProcessingSection')
+    dpg.hide_item('OtsuClassificationSection')
     
 
     if user_data == "LoadingSection":
@@ -116,6 +118,9 @@ def change_section(sender, app_data, user_data):
     elif user_data == "ProcessingSection":
         process_section_update(None, None, None)
         dpg.show_item('ProcessingSection')
+    elif user_data == "OtsuClassificationSection":
+        otsu_section_update(None, None, None)
+        dpg.show_item('OtsuClassificationSection')
 
 
     # Show the selected section
@@ -291,6 +296,56 @@ def computeTransformation():
 
 
 
+
+
+
+
+
+
+def otsu_section_update(sender, app_data, user_data):
+    pass
+    # Ao entrar na secao Otsu, exibe o ultimo resultado ou a imagem original
+    # if result_otsu_img is not None:
+    #     change_image(result_otsu_img)
+    # elif pure_img is not None:
+    #     change_image(pure_img)
+
+def run_vehicle_classification_otsu(sender, app_data, user_data):
+    global pure_img, result_processing_img
+    if pure_img is None:
+        dpg.set_value("classification_log_text", "ERRO: Carregue uma imagem primeiro.")
+        return
+
+    # Etapa 1: Coletar todos os parametros da GUI em um unico dicionario.
+    # As chaves do dicionario ('min_area_moto', etc.) devem ser exatamente
+    # as que a funcao em processing.py espera
+    params = {
+        'min_area_moto':     dpg.get_value("proc_min_area_moto_drag"),
+        'min_area_carro':    dpg.get_value("proc_min_area_carro_drag"),
+        'min_area_caminhao': dpg.get_value("proc_min_area_caminhao_drag"),
+        'max_area_geral':    dpg.get_value("proc_max_area_geral_drag"),
+        'kernel_size':       dpg.get_value("proc_kernel_size_drag"),
+        'open_iter':         dpg.get_value("proc_open_iter_drag"),
+        'close_iter':        dpg.get_value("proc_close_iter_drag"),
+    }
+
+    dpg.set_value("classification_log_text", "Processando... por favor aguarde.")
+
+    # A imagem BGR e a unica necessaria para essa funcao
+    bgr_image = cv2.cvtColor(pure_img, cv2.COLOR_RGBA2BGR)
+
+    # Etapa 2: Chamar a funcao de processamento passando o dicionario de 'params'
+    processed_bgr, logs = Processing.segmentAndClassifyVehiclesOtsu(
+        bgr_image,
+        params
+    )
+
+    result_processing_img = cv2.cvtColor(processed_bgr, cv2.COLOR_BGR2RGBA)
+    change_image(result_processing_img)
+    dpg.set_value("classification_log_text", "\n".join(logs))
+
+
+
 def process_section_update(sender, app_data, user_data):
     global result_transform_img, result_processing_img
 
@@ -355,7 +410,8 @@ with dpg.window(tag="Primary Window"):
         dpg.add_button(label="Image Loading",        tag="secImgLoading",        callback=change_section, user_data="LoadingSection")
         dpg.add_button(label="Image Transformation", tag="secImgTransformation", callback=change_section, user_data="TransformationSection", show=False)
         dpg.add_button(label="Image Processing",     tag="secImgProcessing",     callback=change_section, user_data="ProcessingSection",     show=False)
-    
+        dpg.add_button(label="Vehicle Detection Otsu",     tag="secImgDetectionOtsu",     callback=change_section, user_data="OtsuClassificationSection",     show=False)
+
     
     with dpg.group(horizontal=True):
         with dpg.child_window(tag="LeftChild", width = leftPanel_width):
@@ -457,6 +513,30 @@ with dpg.window(tag="Primary Window"):
                     dpg.add_checkbox  (label='L2 Gradient',    tag='processing_canny_l2_checkbox',     default_value=False, callback=process_section_update)
 
                 dpg.add_button(label='Segment Image', tag='processing_segment_button', enabled=False)
+            
+            with dpg.group(tag="OtsuClassificationSection", show=False):
+                dpg.add_text("Vehicle Classification Parameters")
+                dpg.add_separator()
+
+                dpg.add_text("Area Thresholds (pixels)")
+                dpg.add_drag_int(label="Min Area Moto",   tag="proc_min_area_moto_drag",   default_value=500,   min_value=1, max_value=100000, speed=10)
+                dpg.add_drag_int(label="Min Area Carro",  tag="proc_min_area_carro_drag",  default_value=2500,  min_value=1, max_value=100000, speed=100)
+                dpg.add_drag_int(label="Min Area Caminhao", tag="proc_min_area_caminhao_drag", default_value=8000,  min_value=1, max_value=100000, speed=100)
+                dpg.add_drag_int(label="Max Area Geral",  tag="proc_max_area_geral_drag",  default_value=20000, min_value=1, max_value=100000, speed=100)
+                
+                dpg.add_separator()
+                dpg.add_text("Morphology Parameters")
+                dpg.add_drag_int(label="Kernel Size", tag="proc_kernel_size_drag", default_value=5, min_value=1, max_value=21, speed=2)
+                dpg.add_drag_int(label="Opening Iterations", tag="proc_open_iter_drag", default_value=1, min_value=1, max_value=10)
+                dpg.add_drag_int(label="Closing Iterations", tag="proc_close_iter_drag", default_value=1, min_value=1, max_value=10)
+                dpg.add_separator()
+
+                dpg.add_button(label='Run Vehicle Classification', callback=run_vehicle_classification_otsu, width=-1, height=40)
+
+                dpg.add_separator()
+                dpg.add_text("Results and Logs:")
+                with dpg.child_window(tag="classification_log_window", height=-1, horizontal_scrollbar=True):
+                    dpg.add_text("Aguardando analise...", tag="classification_log_text")
             #####
 
         with dpg.child_window(tag="RightChild"):
