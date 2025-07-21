@@ -45,6 +45,7 @@ def load_image(sender, app_data, user_data):
     dpg.show_item('secImgTransformation')
     dpg.show_item('secImgProcessing')
     dpg.show_item('secImgDetectionOtsu')
+    dpg.show_item('secImgDetectionCanny')
 
 def change_image(main_img_rgba, segmented_img_rgba=None):
     """ Prepara e atualiza as texturas. Aceita uma segunda imagem opcional. """
@@ -142,6 +143,7 @@ def change_section(sender, app_data, user_data):
     dpg.hide_item('TransformationSection')
     dpg.hide_item('ProcessingSection')
     dpg.hide_item('OtsuClassificationSection')
+    dpg.hide_item('CannyClassificationSection')
     
 
     if user_data == "LoadingSection":
@@ -157,6 +159,9 @@ def change_section(sender, app_data, user_data):
     elif user_data == "OtsuClassificationSection":
         otsu_section_update(None, None, None)
         dpg.show_item('OtsuClassificationSection')
+    elif user_data == "CannyClassificationSection":
+        canny_section_update(None, None, None)
+        dpg.show_item('CannyClassificationSection')
 
 
     # Show the selected section
@@ -349,7 +354,7 @@ def otsu_section_update(sender, app_data, user_data):
 def run_vehicle_classification_otsu(sender, app_data, user_data):
     global pure_img, result_processing_img
     if pure_img is None:
-        dpg.set_value("classification_log_text", "ERRO: Carregue uma imagem primeiro.")
+        dpg.set_value("classification_log_text_otsu", "ERRO: Carregue uma imagem primeiro.")
         return
 
     # Etapa 1: Coletar todos os parametros da GUI em um unico dicionario.
@@ -365,7 +370,7 @@ def run_vehicle_classification_otsu(sender, app_data, user_data):
         'close_iter':        dpg.get_value("proc_close_iter_drag"),
     }
 
-    dpg.set_value("classification_log_text", "Processando... por favor aguarde.")
+    dpg.set_value("classification_log_text_otsu", "Processando... por favor aguarde.")
 
     # A imagem BGR e a unica necessaria para essa funcao
     bgr_image = cv2.cvtColor(pure_img, cv2.COLOR_RGBA2BGR)
@@ -382,9 +387,60 @@ def run_vehicle_classification_otsu(sender, app_data, user_data):
     result_segmented_img = cv2.cvtColor(segmented_gray, cv2.COLOR_GRAY2RGBA)
     
     change_image(result_processing_img, result_segmented_img)
-    dpg.set_value("classification_log_text", "\n".join(logs))
+    dpg.set_value("classification_log_text_otsu", "\n".join(logs))
 
 
+
+def canny_section_update(sender, app_data, user_data):
+    pass
+    # Ao entrar na secao Canny, exibe o ultimo resultado ou a imagem original
+    # if result_canny_img is not None:
+    #     change_image(result_canny_img)
+    # elif pure_img is not None:
+    #     change_image(pure_img)
+
+def run_vehicle_classification_canny(sender, app_data, user_data):
+    global pure_img, result_processing_img, result_segmented_img
+    if pure_img is None:
+        dpg.set_value("classification_log_text_canny", "ERRO: Carregue uma imagem primeiro.")
+        return
+
+    # Etapa 1: Coleta TODOS os parametros necessarios para a logica Canny.
+    # Inclui os parametros do Canny, da dilatacao E da classificacao final.
+    params = {
+        # Parametros de classificacao (usados apos a segmentacao)
+        'min_area_moto':     dpg.get_value("canny_min_area_moto_drag"),
+        'min_area_carro':    dpg.get_value("canny_min_area_carro_drag"),
+        'min_area_caminhao': dpg.get_value("canny_min_area_caminhao_drag"),
+        'max_area_geral':    dpg.get_value("canny_max_area_geral_drag"),
+        'min_aspect_ratio':  dpg.get_value("proc_min_ratio_drag"),
+        'max_aspect_ratio':  dpg.get_value("proc_max_ratio_drag"),
+        
+        # Parametros do Canny (usados para encontrar as bordas)
+        'canny_low_threshold':  dpg.get_value("canny_low"),
+        'canny_high_threshold': dpg.get_value("canny_high"),
+
+        # Parametros para fechar as bordas (Dilatacao e Fechamento)
+        'canny_dilate_kernel': dpg.get_value("canny_dilate_kernel"),
+        'canny_dilate_iter':   dpg.get_value("canny_dilate_iter"),
+        'kernel_size':         dpg.get_value("proc_kernel_size_drag"),
+    }
+
+    dpg.set_value("classification_log_text_canny", "Processando com Canny... por favor aguarde.")
+
+    bgr_image = cv2.cvtColor(pure_img, cv2.COLOR_RGBA2BGR)
+
+    # Etapa 2: Chama a funcao de processamento
+    processed_bgr, segmented_gray, logs = Processing.segmentAndClassifyByCanny(
+        bgr_image,
+        params
+    )
+
+    result_processing_img = cv2.cvtColor(processed_bgr, cv2.COLOR_BGR2RGBA)
+    result_segmented_img = cv2.cvtColor(segmented_gray, cv2.COLOR_GRAY2RGBA)
+    
+    change_image(result_processing_img, result_segmented_img)
+    dpg.set_value("classification_log_text_canny", "\n".join(logs))
 
 def process_section_update(sender, app_data, user_data):
     global result_transform_img, result_processing_img
@@ -451,6 +507,7 @@ with dpg.window(tag="Primary Window"):
         dpg.add_button(label="Image Transformation", tag="secImgTransformation", callback=change_section, user_data="TransformationSection", show=False)
         dpg.add_button(label="Image Processing",     tag="secImgProcessing",     callback=change_section, user_data="ProcessingSection",     show=False)
         dpg.add_button(label="Vehicle Detection Otsu",     tag="secImgDetectionOtsu",     callback=change_section, user_data="OtsuClassificationSection",     show=False)
+        dpg.add_button(label="Vehicle Detection Canny",     tag="secImgDetectionCanny",     callback=change_section, user_data="CannyClassificationSection",     show=False)
 
     
     with dpg.group(horizontal=True):
@@ -575,8 +632,36 @@ with dpg.window(tag="Primary Window"):
 
                 dpg.add_separator()
                 dpg.add_text("Results and Logs:")
-                with dpg.child_window(tag="classification_log_window", height=-1, horizontal_scrollbar=True):
-                    dpg.add_text("Aguardando analise...", tag="classification_log_text")
+                with dpg.child_window(tag="classification_log_window_otsu", height=-1, horizontal_scrollbar=True):
+                    dpg.add_text("Aguardando analise...", tag="classification_log_text_otsu")
+                    
+            with dpg.group(tag="CannyClassificationSection", show=False):
+                dpg.add_text("Vehicle Classification Parameters")
+                dpg.add_separator()
+
+                dpg.add_text("Area Thresholds (pixels)")
+                dpg.add_drag_int(label="Min Area Moto",   tag="canny_min_area_moto_drag",   default_value=500,   min_value=1, max_value=100000, speed=10)
+                dpg.add_drag_int(label="Min Area Carro",  tag="canny_min_area_carro_drag",  default_value=2500,  min_value=1, max_value=100000, speed=100)
+                dpg.add_drag_int(label="Min Area Caminhao", tag="canny_min_area_caminhao_drag", default_value=8000,  min_value=1, max_value=100000, speed=100)
+                dpg.add_drag_int(label="Max Area Geral",  tag="canny_max_area_geral_drag",  default_value=20000, min_value=1, max_value=100000, speed=100)
+
+                dpg.add_separator()
+
+                dpg.add_text("Canny Edge Detector Parameters")
+                dpg.add_slider_int(label="Canny Low Threshold", tag="canny_low", max_value=255)
+                dpg.add_slider_int(label="Canny High Threshold", tag="canny_high", default_value=150, max_value=255)
+
+                dpg.add_separator()
+                dpg.add_text("Edge Closing Parameters")
+                dpg.add_drag_int(label="Dilation Kernel Size", tag="canny_dilate_kernel", default_value=5)
+                dpg.add_drag_int(label="Dilation Iterations", tag="canny_dilate_iter", default_value=2)
+
+                dpg.add_button(label='Run Vehicle Classification', callback=run_vehicle_classification_canny, width=-1, height=40)
+
+                dpg.add_separator()
+                dpg.add_text("Results and Logs:")
+                with dpg.child_window(tag="classification_log_window_canny", height=-1, horizontal_scrollbar=True):
+                    dpg.add_text("Aguardando analise...", tag="classification_log_text_canny")
             #####
 
         with dpg.child_window(tag="RightChild"):
