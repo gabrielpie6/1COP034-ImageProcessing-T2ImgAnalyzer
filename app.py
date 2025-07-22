@@ -44,8 +44,8 @@ def load_image(sender, app_data, user_data):
     #
     dpg.show_item('secImgTransformation')
     dpg.show_item('secImgProcessing')
-    dpg.show_item('secImgDetectionOtsu')
-    dpg.show_item('secImgDetectionCanny')
+    # dpg.show_item('secImgDetectionOtsu')
+    # dpg.show_item('secImgDetectionCanny')
 
 def change_image(main_img_rgba, segmented_img_rgba=None):
     """ Prepara e atualiza as texturas. Aceita uma segunda imagem opcional. """
@@ -142,8 +142,8 @@ def change_section(sender, app_data, user_data):
     dpg.hide_item('LoadingSection')
     dpg.hide_item('TransformationSection')
     dpg.hide_item('ProcessingSection')
-    dpg.hide_item('OtsuClassificationSection')
-    dpg.hide_item('CannyClassificationSection')
+    # dpg.hide_item('OtsuClassificationSection')
+    # dpg.hide_item('CannyClassificationSection')
     
 
     if user_data == "LoadingSection":
@@ -156,12 +156,12 @@ def change_section(sender, app_data, user_data):
     elif user_data == "ProcessingSection":
         process_section_update(None, None, None)
         dpg.show_item('ProcessingSection')
-    elif user_data == "OtsuClassificationSection":
-        otsu_section_update(None, None, None)
-        dpg.show_item('OtsuClassificationSection')
-    elif user_data == "CannyClassificationSection":
-        canny_section_update(None, None, None)
-        dpg.show_item('CannyClassificationSection')
+    # elif user_data == "OtsuClassificationSection":
+    #     otsu_section_update(None, None, None)
+    #     dpg.show_item('OtsuClassificationSection')
+    # elif user_data == "CannyClassificationSection":
+    #     canny_section_update(None, None, None)
+    #     dpg.show_item('CannyClassificationSection')
 
 
     # Show the selected section
@@ -343,19 +343,19 @@ def computeTransformation():
 
 
 
-def otsu_section_update(sender, app_data, user_data):
-    pass
-    # Ao entrar na secao Otsu, exibe o ultimo resultado ou a imagem original
-    # if result_otsu_img is not None:
-    #     change_image(result_otsu_img)
-    # elif pure_img is not None:
-    #     change_image(pure_img)
+# def otsu_section_update(sender, app_data, user_data):
+#     pass
+#     # Ao entrar na secao Otsu, exibe o ultimo resultado ou a imagem original
+#     # if result_otsu_img is not None:
+#     #     change_image(result_otsu_img)
+#     # elif pure_img is not None:
+#     #     change_image(pure_img)
 
 def run_vehicle_classification_otsu(sender, app_data, user_data):
-    global pure_img, result_processing_img
-    if pure_img is None:
-        dpg.set_value("classification_log_text_otsu", "ERRO: Carregue uma imagem primeiro.")
-        return
+    global result_processing_img, result_segmented_img
+    # if pure_img is None:
+    #     dpg.set_value("classification_log_text_otsu", "ERRO: Carregue uma imagem primeiro.")
+    #     return
 
     # Etapa 1: Coletar todos os parametros da GUI em um unico dicionario.
     # As chaves do dicionario ('min_area_moto', etc.) devem ser exatamente
@@ -372,8 +372,9 @@ def run_vehicle_classification_otsu(sender, app_data, user_data):
 
     dpg.set_value("classification_log_text_otsu", "Processando... por favor aguarde.")
 
-    # A imagem BGR e a unica necessaria para essa funcao
-    bgr_image = cv2.cvtColor(pure_img, cv2.COLOR_RGBA2BGR)
+
+    result = computeProcessing()
+    bgr_image = cv2.cvtColor(result, cv2.COLOR_RGBA2BGR)
 
     # Etapa 2: Chamar a funcao de processamento passando o dicionario de 'params'
     processed_bgr, segmented_gray, logs = Processing.segmentAndClassifyVehiclesOtsu(
@@ -391,19 +392,19 @@ def run_vehicle_classification_otsu(sender, app_data, user_data):
 
 
 
-def canny_section_update(sender, app_data, user_data):
-    pass
-    # Ao entrar na secao Canny, exibe o ultimo resultado ou a imagem original
-    # if result_canny_img is not None:
-    #     change_image(result_canny_img)
-    # elif pure_img is not None:
-    #     change_image(pure_img)
+# def canny_section_update(sender, app_data, user_data):
+#     pass
+#     # Ao entrar na secao Canny, exibe o ultimo resultado ou a imagem original
+#     # if result_canny_img is not None:
+#     #     change_image(result_canny_img)
+#     # elif pure_img is not None:
+#     #     change_image(pure_img)
 
 def run_vehicle_classification_canny(sender, app_data, user_data):
-    global pure_img, result_processing_img, result_segmented_img
-    if pure_img is None:
-        dpg.set_value("classification_log_text_canny", "ERRO: Carregue uma imagem primeiro.")
-        return
+    global result_processing_img, result_segmented_img
+    # if pure_img is None:
+    #     dpg.set_value("classification_log_text_canny", "ERRO: Carregue uma imagem primeiro.")
+    #     return
 
     # Etapa 1: Coleta TODOS os parametros necessarios para a logica Canny.
     # Inclui os parametros do Canny, da dilatacao E da classificacao final.
@@ -428,7 +429,8 @@ def run_vehicle_classification_canny(sender, app_data, user_data):
 
     dpg.set_value("classification_log_text_canny", "Processando com Canny... por favor aguarde.")
 
-    bgr_image = cv2.cvtColor(pure_img, cv2.COLOR_RGBA2BGR)
+    result = computeProcessing()
+    bgr_image = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 
     # Etapa 2: Chama a funcao de processamento
     processed_bgr, segmented_gray, logs = Processing.segmentAndClassifyByCanny(
@@ -437,28 +439,49 @@ def run_vehicle_classification_canny(sender, app_data, user_data):
     )
 
     result_processing_img = cv2.cvtColor(processed_bgr, cv2.COLOR_BGR2RGBA)
-    result_segmented_img = cv2.cvtColor(segmented_gray, cv2.COLOR_GRAY2RGBA)
+    result_segmented_img  = cv2.cvtColor(segmented_gray, cv2.COLOR_GRAY2RGBA)
     
     change_image(result_processing_img, result_segmented_img)
     dpg.set_value("classification_log_text_canny", "\n".join(logs))
 
+
+
+
+
+
+
+
+
+
+
+
 def process_section_update(sender, app_data, user_data):
-    global result_transform_img, result_processing_img
+    # global result_transform_img, result_processing_img
 
-    result_img = computeProcessing()
+    # computeProcessing()
 
-    if dpg.get_value('processing_canny_checkbox'):
-        dpg.enable_item('processing_canny')
-        low        = dpg.get_value('processing_canny_low_slider')
-        high       = dpg.get_value('processing_canny_high_slider')
-        aperture   = dpg.get_value('processing_canny_aperture_slider')
-        aperture   = aperture if aperture % 2 == 1 else aperture + 1  # Ensure odd size
-        l2gradient = dpg.get_value('processing_canny_l2_checkbox')
-        result_processing_img = Processing.cannyEdgeDetection(result_img, lowThreshold=low, highThreshold=high, apertureSize=aperture, L2gradient=l2gradient)
-    else:
-        dpg.disable_item('processing_canny')
+    # Hide all
+    dpg.hide_item('OtsuClassificationSection')
+    dpg.hide_item('CannyClassificationSection')
+    
+    # if dpg.get_value('processing_canny_checkbox'):
+    #     dpg.enable_item('processing_canny')
+    #     low        = dpg.get_value('processing_canny_low_slider')
+    #     high       = dpg.get_value('processing_canny_high_slider')
+    #     aperture   = dpg.get_value('processing_canny_aperture_slider')
+    #     aperture   = aperture if aperture % 2 == 1 else aperture + 1  # Ensure odd size
+    #     l2gradient = dpg.get_value('processing_canny_l2_checkbox')
+    #     result_processing_img = Processing.cannyEdgeDetection(result_img, lowThreshold=low, highThreshold=high, apertureSize=aperture, L2gradient=l2gradient)
+    # else:
+    #     dpg.disable_item('processing_canny')
 
-    change_image(cv2.cvtColor(result_processing_img, cv2.COLOR_GRAY2RGBA))
+    method = dpg.get_value('processing_classification_method')
+    if method == "Otsu":
+        dpg.show_item('OtsuClassificationSection')
+    elif method == "Canny":
+        dpg.show_item('CannyClassificationSection')
+
+    # change_image(cv2.cvtColor(result_processing_img, cv2.COLOR_GRAY2RGBA))
 
 def computeProcessing():
     global result_transform_img, result_processing_img
@@ -506,8 +529,8 @@ with dpg.window(tag="Primary Window"):
         dpg.add_button(label="Image Loading",        tag="secImgLoading",        callback=change_section, user_data="LoadingSection")
         dpg.add_button(label="Image Transformation", tag="secImgTransformation", callback=change_section, user_data="TransformationSection", show=False)
         dpg.add_button(label="Image Processing",     tag="secImgProcessing",     callback=change_section, user_data="ProcessingSection",     show=False)
-        dpg.add_button(label="Vehicle Detection Otsu",     tag="secImgDetectionOtsu",     callback=change_section, user_data="OtsuClassificationSection",     show=False)
-        dpg.add_button(label="Vehicle Detection Canny",     tag="secImgDetectionCanny",     callback=change_section, user_data="CannyClassificationSection",     show=False)
+        # dpg.add_button(label="Vehicle Detection Otsu",     tag="secImgDetectionOtsu",     callback=change_section, user_data="OtsuClassificationSection",     show=False)
+        # dpg.add_button(label="Vehicle Detection Canny",     tag="secImgDetectionCanny",     callback=change_section, user_data="CannyClassificationSection",     show=False)
 
     
     with dpg.group(horizontal=True):
@@ -591,77 +614,93 @@ with dpg.window(tag="Primary Window"):
                         
             
 
-            def on_canny_slider_update(sender, app_data, user_data):
-                if sender == 'processing_canny_low_slider':
-                    low = dpg.get_value('processing_canny_low_slider')
-                    dpg.set_value('processing_canny_high_slider', max(dpg.get_value('processing_canny_high_slider'), low + 1))
-                elif sender == 'processing_canny_high_slider':
-                    high = dpg.get_value('processing_canny_high_slider')
-                    dpg.set_value('processing_canny_low_slider', min(dpg.get_value('processing_canny_low_slider'), high - 1))
-                process_section_update(sender, app_data, user_data)
-                
+
+
+
+
             # Processing Section
             with dpg.group(tag="ProcessingSection", show=False):
-                dpg.add_checkbox(label='Canny Edge Detection', tag='processing_canny_checkbox', default_value=True, enabled=False)
-                with dpg.group(tag='processing_canny', enabled=False):
-                    dpg.add_slider_int(label='Low Threshold',  tag='processing_canny_low_slider',      default_value=100,   min_value=0, max_value=254, callback=on_canny_slider_update)
-                    dpg.add_slider_int(label='High Threshold', tag='processing_canny_high_slider',     default_value=200,   min_value=1, max_value=255, callback=on_canny_slider_update)
-                    dpg.add_slider_int(label='Aperture Size',  tag='processing_canny_aperture_slider', default_value=3,     min_value=3, max_value=7,   callback=process_section_update)
-                    dpg.add_checkbox  (label='L2 Gradient',    tag='processing_canny_l2_checkbox',     default_value=False, callback=process_section_update)
+                # def on_canny_slider_update(sender, app_data, user_data):
+                #     if sender == 'processing_canny_low_slider':
+                #         low = dpg.get_value('processing_canny_low_slider')
+                #         dpg.set_value('processing_canny_high_slider', max(dpg.get_value('processing_canny_high_slider'), low + 1))
+                #     elif sender == 'processing_canny_high_slider':
+                #         high = dpg.get_value('processing_canny_high_slider')
+                #         dpg.set_value('processing_canny_low_slider', min(dpg.get_value('processing_canny_low_slider'), high - 1))
+                #     process_section_update(sender, app_data, user_data)
+                #
+                # dpg.add_checkbox(label='Canny Edge Detection', tag='processing_canny_checkbox', default_value=True, enabled=False)
+                # with dpg.group(tag='processing_canny', enabled=False):
+                #     dpg.add_slider_int(label='Low Threshold',  tag='processing_canny_low_slider',      default_value=100,   min_value=0, max_value=254, callback=on_canny_slider_update)
+                #     dpg.add_slider_int(label='High Threshold', tag='processing_canny_high_slider',     default_value=200,   min_value=1, max_value=255, callback=on_canny_slider_update)
+                #     dpg.add_slider_int(label='Aperture Size',  tag='processing_canny_aperture_slider', default_value=3,     min_value=3, max_value=7,   callback=process_section_update)
+                #     dpg.add_checkbox  (label='L2 Gradient',    tag='processing_canny_l2_checkbox',     default_value=False, callback=process_section_update)
 
-                dpg.add_button(label='Segment Image', tag='processing_segment_button', enabled=False)
-            
-            with dpg.group(tag="OtsuClassificationSection", show=False):
-                dpg.add_text("Vehicle Classification Parameters")
-                dpg.add_separator()
-
-                dpg.add_text("Area Thresholds (pixels)")
-                dpg.add_drag_int(label="Min Area Moto",   tag="proc_min_area_moto_drag",   default_value=500,   min_value=1, max_value=100000, speed=10)
-                dpg.add_drag_int(label="Min Area Carro",  tag="proc_min_area_carro_drag",  default_value=2500,  min_value=1, max_value=100000, speed=100)
-                dpg.add_drag_int(label="Min Area Caminhao", tag="proc_min_area_caminhao_drag", default_value=8000,  min_value=1, max_value=100000, speed=100)
-                dpg.add_drag_int(label="Max Area Geral",  tag="proc_max_area_geral_drag",  default_value=20000, min_value=1, max_value=100000, speed=100)
+                # dpg.add_button(label='Segment Image', tag='processing_segment_button', enabled=False)
                 
-                dpg.add_separator()
-                dpg.add_text("Morphology Parameters")
-                dpg.add_drag_int(label="Kernel Size", tag="proc_kernel_size_drag", default_value=5, min_value=1, max_value=21, speed=2)
-                dpg.add_drag_int(label="Opening Iterations", tag="proc_open_iter_drag", default_value=1, min_value=1, max_value=10)
-                dpg.add_drag_int(label="Closing Iterations", tag="proc_close_iter_drag", default_value=1, min_value=1, max_value=10)
-                dpg.add_separator()
+                dpg.add_radio_button(
+                        tag='processing_classification_method',
+                        items=["Otsu", "Canny"],
+                        default_value="Otsu",
+                        horizontal=True,
+                        callback=process_section_update
+                )
+                #
+                #
+                # Otsu Classification Sub-section
+                with dpg.group(tag="OtsuClassificationSection", show=True):
+                    dpg.add_text("Vehicle Classification Parameters")
+                    dpg.add_separator()
 
-                dpg.add_button(label='Run Vehicle Classification', callback=run_vehicle_classification_otsu, width=-1, height=40)
-
-                dpg.add_separator()
-                dpg.add_text("Results and Logs:")
-                with dpg.child_window(tag="classification_log_window_otsu", height=-1, horizontal_scrollbar=True):
-                    dpg.add_text("Aguardando analise...", tag="classification_log_text_otsu")
+                    dpg.add_text("Area Thresholds (pixels)")
+                    dpg.add_drag_int(label="Min Area Moto",     tag="proc_min_area_moto_drag",     default_value=500,   min_value=1, max_value=100000, speed=10)
+                    dpg.add_drag_int(label="Min Area Carro",    tag="proc_min_area_carro_drag",    default_value=2500,  min_value=1, max_value=100000, speed=100)
+                    dpg.add_drag_int(label="Min Area Caminhao", tag="proc_min_area_caminhao_drag", default_value=8000,  min_value=1, max_value=100000, speed=100)
+                    dpg.add_drag_int(label="Max Area Geral",    tag="proc_max_area_geral_drag",    default_value=20000, min_value=1, max_value=100000, speed=100)
                     
-            with dpg.group(tag="CannyClassificationSection", show=False):
-                dpg.add_text("Vehicle Classification Parameters")
-                dpg.add_separator()
+                    dpg.add_separator()
+                    dpg.add_text("Morphology Parameters")
+                    dpg.add_drag_int(label="Kernel Size",        tag="proc_kernel_size_drag", default_value=5, min_value=1, max_value=21, speed=2)
+                    dpg.add_drag_int(label="Opening Iterations", tag="proc_open_iter_drag",   default_value=1, min_value=1, max_value=10)
+                    dpg.add_drag_int(label="Closing Iterations", tag="proc_close_iter_drag",  default_value=1, min_value=1, max_value=10)
+                    dpg.add_separator()
 
-                dpg.add_text("Area Thresholds (pixels)")
-                dpg.add_drag_int(label="Min Area Moto",   tag="canny_min_area_moto_drag",   default_value=500,   min_value=1, max_value=100000, speed=10)
-                dpg.add_drag_int(label="Min Area Carro",  tag="canny_min_area_carro_drag",  default_value=2500,  min_value=1, max_value=100000, speed=100)
-                dpg.add_drag_int(label="Min Area Caminhao", tag="canny_min_area_caminhao_drag", default_value=8000,  min_value=1, max_value=100000, speed=100)
-                dpg.add_drag_int(label="Max Area Geral",  tag="canny_max_area_geral_drag",  default_value=20000, min_value=1, max_value=100000, speed=100)
+                    dpg.add_button(label='Run Vehicle Classification', callback=run_vehicle_classification_otsu, width=-1, height=40)
 
-                dpg.add_separator()
+                    dpg.add_separator()
+                    dpg.add_text("Results and Logs:")
+                    with dpg.child_window(tag="classification_log_window_otsu", height=-1, horizontal_scrollbar=True):
+                        dpg.add_text("Aguardando analise...", tag="classification_log_text_otsu")
+                #
+                #
+                # Canny Classification Sub-section
+                with dpg.group(tag="CannyClassificationSection", show=False):
+                    dpg.add_text("Vehicle Classification Parameters")
+                    dpg.add_separator()
 
-                dpg.add_text("Canny Edge Detector Parameters")
-                dpg.add_slider_int(label="Canny Low Threshold", tag="canny_low", max_value=255)
-                dpg.add_slider_int(label="Canny High Threshold", tag="canny_high", default_value=150, max_value=255)
+                    dpg.add_text("Area Thresholds (pixels)")
+                    dpg.add_drag_int(label="Min Area Moto",     tag="canny_min_area_moto_drag",     default_value=500,   min_value=1, max_value=100000, speed=10)
+                    dpg.add_drag_int(label="Min Area Carro",    tag="canny_min_area_carro_drag",    default_value=2500,  min_value=1, max_value=100000, speed=100)
+                    dpg.add_drag_int(label="Min Area Caminhao", tag="canny_min_area_caminhao_drag", default_value=8000,  min_value=1, max_value=100000, speed=100)
+                    dpg.add_drag_int(label="Max Area Geral",    tag="canny_max_area_geral_drag",    default_value=20000, min_value=1, max_value=100000, speed=100)
 
-                dpg.add_separator()
-                dpg.add_text("Edge Closing Parameters")
-                dpg.add_drag_int(label="Dilation Kernel Size", tag="canny_dilate_kernel", default_value=5)
-                dpg.add_drag_int(label="Dilation Iterations", tag="canny_dilate_iter", default_value=2)
+                    dpg.add_separator()
 
-                dpg.add_button(label='Run Vehicle Classification', callback=run_vehicle_classification_canny, width=-1, height=40)
+                    dpg.add_text("Canny Edge Detector Parameters")
+                    dpg.add_slider_int(label="Canny Low Threshold",  tag="canny_low",  max_value=255)
+                    dpg.add_slider_int(label="Canny High Threshold", tag="canny_high", default_value=150, max_value=255)
 
-                dpg.add_separator()
-                dpg.add_text("Results and Logs:")
-                with dpg.child_window(tag="classification_log_window_canny", height=-1, horizontal_scrollbar=True):
-                    dpg.add_text("Aguardando analise...", tag="classification_log_text_canny")
+                    dpg.add_separator()
+                    dpg.add_text("Edge Closing Parameters")
+                    dpg.add_drag_int(label="Dilation Kernel Size", tag="canny_dilate_kernel", default_value=5)
+                    dpg.add_drag_int(label="Dilation Iterations",  tag="canny_dilate_iter",   default_value=2)
+
+                    dpg.add_button(label='Run Vehicle Classification', callback=run_vehicle_classification_canny, width=-1, height=40)
+
+                    dpg.add_separator()
+                    dpg.add_text("Results and Logs:")
+                    with dpg.child_window(tag="classification_log_window_canny", height=-1, horizontal_scrollbar=True):
+                        dpg.add_text("Aguardando analise...", tag="classification_log_text_canny")
             #####
 
         with dpg.child_window(tag="RightChild"):
@@ -674,7 +713,7 @@ with dpg.window(tag="Primary Window"):
 
 
 
-dpg.create_viewport(title='Custom Title', width=vp_width, height=vp_height)
+dpg.create_viewport(title='Image Analyzer for Vehicle Detection', width=vp_width, height=vp_height)
 dpg.set_viewport_resize_callback(on_viewport_resize)
 dpg.setup_dearpygui()
 dpg.show_viewport()
