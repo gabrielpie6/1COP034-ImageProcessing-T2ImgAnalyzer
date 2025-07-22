@@ -547,21 +547,25 @@ with dpg.window(tag="Primary Window"):
                 dpg.add_checkbox(label='Flip Vertical',          tag='transform_flipV_checkbox',  callback=transform_section_update)
                 dpg.add_checkbox(label='Histogram Equalization', tag='transform_histEq_checkbox', callback=transform_section_update)
 
+                dpg.add_separator()
 
                 # Blurring
-                dpg.add_checkbox(label='Mean Blur', tag='transform_mean_blur_checkbox', callback=transform_section_update, default_value=False)
-                with dpg.group(tag='transform_mean_blur', enabled=False):
-                    dpg.add_slider_int(label='Kernel Size', tag='transform_mean_blur_kernel_slider', default_value=5, min_value=1, max_value=99, callback=transform_section_update)
-                #
-                dpg.add_checkbox(label='Gaussian Blur', tag='transform_gaussian_blur_checkbox', callback=transform_section_update, default_value=False)
-                with dpg.group(tag='transform_gaussian_blur', enabled=False):
-                    dpg.add_slider_int  (label='Kernel Size', tag='transform_gaussian_blur_kernel_slider', default_value=5, min_value=1, max_value=99, callback=transform_section_update)
-                    dpg.add_slider_float(label='Sigma X',     tag='transform_gaussian_blur_sigmaX_slider', default_value=0, min_value=0, max_value=10, callback=transform_section_update)
-                    dpg.add_slider_float(label='Sigma Y',     tag='transform_gaussian_blur_sigmaY_slider', default_value=0, min_value=0, max_value=10, callback=transform_section_update)
-                #
-                dpg.add_checkbox(label='Median Blur', tag='transform_median_blur_checkbox', callback=transform_section_update, default_value=False)
-                with dpg.group(tag='transform_median_blur', enabled=False):
-                    dpg.add_slider_int(label='Kernel Size', tag='transform_median_blur_kernel_slider', default_value=5, min_value=1, max_value=99, callback=transform_section_update)
+                with dpg.group(tag='transform_blurring'):
+                    dpg.add_checkbox(label='Mean Blur', tag='transform_mean_blur_checkbox', callback=transform_section_update, default_value=False)
+                    with dpg.group(tag='transform_mean_blur', enabled=False):
+                        dpg.add_slider_int(label='Kernel Size', tag='transform_mean_blur_kernel_slider', default_value=5, min_value=1, max_value=99, callback=transform_section_update)
+                    #
+                    dpg.add_checkbox(label='Gaussian Blur', tag='transform_gaussian_blur_checkbox', callback=transform_section_update, default_value=False)
+                    with dpg.group(tag='transform_gaussian_blur', enabled=False):
+                        dpg.add_slider_int  (label='Kernel Size', tag='transform_gaussian_blur_kernel_slider', default_value=5, min_value=1, max_value=99, callback=transform_section_update)
+                        dpg.add_slider_float(label='Sigma X',     tag='transform_gaussian_blur_sigmaX_slider', default_value=0, min_value=0, max_value=10, callback=transform_section_update)
+                        dpg.add_slider_float(label='Sigma Y',     tag='transform_gaussian_blur_sigmaY_slider', default_value=0, min_value=0, max_value=10, callback=transform_section_update)
+                    #
+                    dpg.add_checkbox(label='Median Blur', tag='transform_median_blur_checkbox', callback=transform_section_update, default_value=False)
+                    with dpg.group(tag='transform_median_blur', enabled=False):
+                        dpg.add_slider_int(label='Kernel Size', tag='transform_median_blur_kernel_slider', default_value=5, min_value=1, max_value=99, callback=transform_section_update)
+
+                dpg.add_separator()
 
                 # Spatial Filtering
                 dpg.add_checkbox(label='Spatial Filtering', tag='transform_spatial_checkbox', callback=transform_section_update, default_value=False)
@@ -579,6 +583,7 @@ with dpg.window(tag="Primary Window"):
                     with dpg.group(tag='transform_sobel_y', enabled=False):
                         dpg.add_slider_int(label='Kernel Size', tag='transform_sobel_y_kernel_slider', default_value=3, min_value=1, max_value=31, callback=transform_section_update)
 
+                dpg.add_separator()
 
                 # Frequency Filtering
                 dpg.add_checkbox(label='Frequency Filtering', tag='transform_freq_checkbox', callback=transform_section_update, default_value=False)
@@ -593,6 +598,7 @@ with dpg.window(tag="Primary Window"):
                         dpg.add_slider_float(label='Fade In',  tag='transform_fadein_slider',  default_value=5,   min_value=0.01, max_value=10,  callback=transform_section_update)
                         dpg.add_slider_float(label='Fade Out', tag='transform_fadeout_slider', default_value=5,   min_value=0.01, max_value=10,  callback=transform_section_update)
                 
+                dpg.add_separator()
 
                 # Binarization
                 dpg.add_checkbox(label='Binarization', tag='transform_binarization_checkbox', callback=transform_section_update, default_value=False)
