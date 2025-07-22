@@ -197,13 +197,14 @@ def transform_section_update(sender, app_data, user_data):
     if dpg.get_value('transform_freqview_checkbox'):
         view = Transformation.frequencyDomain(result_transform_img)
     elif dpg.get_value('transform_bandpass_maskview'):
-        split   = dpg.get_value('transform_split_slider')
-        inner   = dpg.get_value('transform_inner_slider')
-        outer   = dpg.get_value('transform_outer_slider')
-        fadeIn  = dpg.get_value('transform_fadein_slider')
-        fadeOut = dpg.get_value('transform_fadeout_slider')
-        img     = Transformation.bandPassMask(result_transform_img.shape[1], result_transform_img.shape[0], split, inner, outer, fadeIn, fadeOut)
-        view    = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        split      = dpg.get_value('transform_split_slider')
+        inner      = dpg.get_value('transform_inner_slider')
+        outer      = dpg.get_value('transform_outer_slider')
+        fadeIn     = dpg.get_value('transform_fadein_slider')
+        fadeOut    = dpg.get_value('transform_fadeout_slider')
+        bandMethod = dpg.get_value('transform_band_method')
+        img        = Transformation.bandPassMask(result_transform_img.shape[1], result_transform_img.shape[0], split, inner, outer, fadeIn, fadeOut, bandMethod)
+        view       = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
     else:
         view = result_transform_img
 
@@ -291,12 +292,13 @@ def computeTransformation():
         if dpg.get_value('transform_bandpass_checkbox'):
             dpg.enable_item('transform_freq_bandpass')
 
-            split   = dpg.get_value('transform_split_slider')
-            inner   = dpg.get_value('transform_inner_slider')
-            outer   = dpg.get_value('transform_outer_slider')
-            fadeIn  = dpg.get_value('transform_fadein_slider')
-            fadeOut = dpg.get_value('transform_fadeout_slider')
-            result_img = Transformation.bandPass(result_img, split, inner, outer, fadeIn, fadeOut)
+            split      = dpg.get_value('transform_split_slider')
+            inner      = dpg.get_value('transform_inner_slider')
+            outer      = dpg.get_value('transform_outer_slider')
+            fadeIn     = dpg.get_value('transform_fadein_slider')
+            fadeOut    = dpg.get_value('transform_fadeout_slider')
+            bandMethod = dpg.get_value('transform_band_method')
+            result_img = Transformation.bandPass(result_img, split, inner, outer, fadeIn, fadeOut, bandMethod)
         else:
             dpg.disable_item('transform_freq_bandpass')
     else:
@@ -589,15 +591,22 @@ with dpg.window(tag="Primary Window"):
                 dpg.add_checkbox(label='Frequency Filtering', tag='transform_freq_checkbox', callback=transform_section_update, default_value=False)
                 with dpg.group(tag='transform_freq_filtering', enabled=False):
                     dpg.add_checkbox(label='Frequency Domain View', tag='transform_freqview_checkbox', callback=transform_section_update, default_value=False)
-                    dpg.add_checkbox(label='Band-pass Filter',      tag='transform_bandpass_checkbox', callback=transform_section_update, default_value=False)
+                    dpg.add_checkbox(label='Band Filter',      tag='transform_bandpass_checkbox', callback=transform_section_update, default_value=False)
                     with dpg.group(tag='transform_freq_bandpass', enabled=False):
-                        dpg.add_checkbox(label='Band-pass Mask View', tag='transform_bandpass_maskview', callback=transform_section_update, default_value=False)
+                        dpg.add_checkbox(label='Band Mask View', tag='transform_bandpass_maskview', callback=transform_section_update, default_value=False)
                         dpg.add_slider_float(label='Split',    tag='transform_split_slider',   default_value=0.5, min_value=0.0,  max_value=1.0, callback=transform_section_update)
                         dpg.add_slider_float(label='Inner',    tag='transform_inner_slider',   default_value=0.5, min_value=0.0,  max_value=1.0, callback=transform_section_update)
                         dpg.add_slider_float(label='Outer',    tag='transform_outer_slider',   default_value=0.5, min_value=0.0,  max_value=1.0, callback=transform_section_update)
                         dpg.add_slider_float(label='Fade In',  tag='transform_fadein_slider',  default_value=5,   min_value=0.01, max_value=10,  callback=transform_section_update)
                         dpg.add_slider_float(label='Fade Out', tag='transform_fadeout_slider', default_value=5,   min_value=0.01, max_value=10,  callback=transform_section_update)
-                
+                        dpg.add_radio_button(
+                            tag='transform_band_method',
+                            items=["Pass", "Reject"],
+                            default_value="Pass",
+                            horizontal=True,
+                            callback=transform_section_update
+                        )
+                        
                 dpg.add_separator()
 
                 # Binarization

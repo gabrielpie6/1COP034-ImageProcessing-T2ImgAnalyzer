@@ -58,7 +58,7 @@ class Transformation:
 
 
     @staticmethod
-    def bandPassMask(width, height, split, inner, outer, fadeIn, fadeOut):
+    def bandPassMask(width, height, split, inner, outer, fadeIn, fadeOut, bandMethod='Pass'):
         d = np.sqrt((width/2)**2 + (height/2)**2)
         m = split * d
 
@@ -74,7 +74,12 @@ class Transformation:
 
         q = lambda t: g(t)*h(t)
         c = lambda x, y: q(np.sqrt(x**2 + y**2))
-        normalized = lambda x, y: c(x - width / 2, y - height / 2)
+        if bandMethod == 'Pass':
+            normalized = lambda x, y: c(x - width / 2, y - height / 2)
+        elif bandMethod == 'Reject':
+            normalized = lambda x, y: 1 - c(x - width / 2, y - height / 2)
+        else:
+            raise ValueError("bandMethod must be either 'Pass' or 'Reject'")
 
         ys, xs = np.indices((height, width))
         mask = normalized(xs, ys)
@@ -82,10 +87,10 @@ class Transformation:
         return mask
 
     @staticmethod
-    def bandPass(img, split, inner, outer, fadeIn, fadeOut):
+    def bandPass(img, split, inner, outer, fadeIn, fadeOut, bandMethod='Pass'):
         width,  height  = img.shape[1], img.shape[0]
 
-        mask = Transformation.bandPassMask(width, height, split, inner, outer, fadeIn, fadeOut)
+        mask = Transformation.bandPassMask(width, height, split, inner, outer, fadeIn, fadeOut, bandMethod)
 
         imgDFT = np.fft.fftshift(np.fft.fft2(img))
         res = np.abs(np.fft.ifft2(imgDFT * mask)).astype(np.uint8)
